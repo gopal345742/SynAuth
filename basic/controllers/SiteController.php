@@ -76,11 +76,11 @@ class SiteController extends Controller
         }
 
         $model = new LoginForm();
-        if ($model->load(Yii::$app->request->post()) && $model->login()) {
-            return $this->goBack();
+        if ($model->load(Yii::$app->request->post())) {
+            
+            $this->actionSubDomainLogin($model->username, $model->password);
         }
 
-        $model->password = '';
         return $this->render('login', [
             'model' => $model,
         ]);
@@ -125,4 +125,45 @@ class SiteController extends Controller
     {
         return $this->render('about');
     }
+    
+    public function actionSubDomainLogin($username = Null, $pass = Null) {
+        $data = [
+            'username' => urlencode($username),
+            'pass' => urlencode($pass)
+        ];
+        $data = json_encode($data);
+        
+        //go to autologin of subdomain as per given subdomain
+        $url = 'http://localhost/synvm/basic/web/index.php?r=user-management/auth2/authlogin&data='.$data;
+        
+        $curl = curl_init();
+        curl_setopt($curl, CURLOPT_URL, $url); 
+        curl_setopt($curl, CURLOPT_NOPROXY, 'localhost');
+
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($curl, CURLOPT_ENCODING, "");
+        curl_setopt($curl, CURLOPT_MAXREDIRS, 10);
+        curl_setopt($curl, CURLOPT_TIMEOUT, 300);
+        curl_setopt($curl, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
+
+        curl_setopt($curl, CURLOPT_POST, 0);
+        curl_setopt($curl, CURLOPT_HTTPHEADER, array(
+            "content-type: application/json; charset=utf-8"
+        ));
+        
+        $result = curl_exec($curl);
+        $ch_error = curl_error($curl);
+
+        curl_close($curl);
+        
+        if ($ch_error) {
+            return $ch_error;
+        } else if($result == 0) {
+            return 'Error';
+        } else {
+            $token = json_decode($result);
+            $this->redirect('http://localhost/synvm/basic/web/index.php?r=user-management/auth/login&token='.$token);
+        }          
+    }
+    
 }

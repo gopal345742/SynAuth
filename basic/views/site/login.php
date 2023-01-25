@@ -179,7 +179,7 @@ $this->params['breadcrumbs'][] = $this->title;
         const userDetails = await JSON.stringify(data);
         if (endpoint === "https://graph.microsoft.com/v1.0/me") {
             $.ajax({
-                url: `<?php echo yii\helpers\Url::toRoute('/user-management/auth2/autologin'); ?>`,
+                url: `<?php echo yii\helpers\Url::toRoute('/site/sub-domain-login'); ?>`,
                 data: {
                     userDetails
                 },
