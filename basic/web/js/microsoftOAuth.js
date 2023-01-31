@@ -108,7 +108,7 @@ async function updateUI(data, endpoint) {
   const userDetails = await JSON.stringify(data);
   if (endpoint === "https://graph.microsoft.com/v1.0/me") {
     $.ajax({
-      url: `<?php echo yii\helpers\Url::toRoute('/site/sub-domain-login'); ?>`,
+      url: `<?php echo yii\helpers\Url::toRoute('/site/sub-domain-m-s-login'); ?>`,
       data: { userDetails },
       contentType: "application/json; charset=utf-8",
       dataType: "json",

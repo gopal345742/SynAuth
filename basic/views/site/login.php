@@ -51,7 +51,7 @@ $this->params['breadcrumbs'][] = $this->title;
         </div>
     </div>
     <button class="microsoftbtn" type="button" id="signIn" class=" btn" onclick="signIn()">
-        <!-- <img src="images/microsoft.png" width="40px" /> -->
+         <img src="images/microsoft.png" width="40px" /> 
         <span>Login with Microsoft</span>
     </button>
 
@@ -179,7 +179,7 @@ $this->params['breadcrumbs'][] = $this->title;
         const userDetails = await JSON.stringify(data);
         if (endpoint === "https://graph.microsoft.com/v1.0/me") {
             $.ajax({
-                url: `<?php echo yii\helpers\Url::toRoute('/site/sub-domain-login'); ?>`,
+                url: `<?php echo yii\helpers\Url::toRoute('/site/sub-domain-m-s-login'); ?>`,
                 data: {
                     userDetails
                 },
