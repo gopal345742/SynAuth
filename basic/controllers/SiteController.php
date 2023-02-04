@@ -9,6 +9,7 @@ use yii\web\Response;
 use yii\filters\VerbFilter;
 use app\models\LoginForm;
 use app\models\ContactForm;
+use app\models\JWTToken;
 
 class SiteController extends Controller {
 
@@ -119,17 +120,23 @@ class SiteController extends Controller {
         return $this->render('about');
     }
 
-    public function actionSubDomainLogin($username = Null, $pass = Null) {
+    public function actionSubDomainLogin($username, $pass) {
         $data = [
-            'username' => urlencode($username),
-            'pass' => urlencode($pass)
+            'username' => $username,
+            'pass' => $pass,
+            'exp' => (time() + 60)
         ];
-        $data = json_encode($data);
-
+        
         //go to autologin of subdomain as per given subdomain
         $path = $this::giveSubDomainUrl($data);
-        $url = $path . 'r=user-management/auth2/authlogin&data=' . $data;
+        $url = $path . 'r=user-management/auth2/authlogin';
 
+        $jwt_headers = [
+            "alg" => "HS256",
+            "typ" => "JWT"
+        ];
+        $jwt_token = JWTToken::generate_jwt($jwt_headers, $data);
+        
         $curl = curl_init();
         curl_setopt($curl, CURLOPT_URL, $url);
         curl_setopt($curl, CURLOPT_NOPROXY, 'localhost');
@@ -142,7 +149,8 @@ class SiteController extends Controller {
 
         curl_setopt($curl, CURLOPT_POST, 0);
         curl_setopt($curl, CURLOPT_HTTPHEADER, array(
-            "content-type: application/json; charset=utf-8"
+            "content-type: application/json; charset=utf-8",
+            "Authorization: ".$jwt_token
         ));
 
         $result = curl_exec($curl);
@@ -156,6 +164,7 @@ class SiteController extends Controller {
 
         $result = json_decode($result);
         if ($result->status == 0) {
+            
             return 'Error';
         } else {
             $token = $result->token;
@@ -163,17 +172,25 @@ class SiteController extends Controller {
         }
     }
 
-    public function actionSubDomainMSLogin($userDetails) {
-        $userDetails = json_decode($userDetails);
-        $data = [
-            'email' => urlencode($userDetails->mail),
-        ];
-        $data = json_encode($data);
+    public function giveSubDomainUrl($data) {
+        $path1 = 'http://localhost/synvm/basic/web/index.php?';
+        $path = 'http://172.105.33.91/scm_upgrade/synvm/basic/web/index.php?';
 
+        return $path1;
+    }
+    
+    public function actionSubDomainMSLogin($MStoken) {
+        $res = $this::FetchDetailFromMS($MStoken);
+        if ($res['status'] == 0) {
+            $this->redirect(['/site/login']);
+        } else {
+            $userinfo = $res['result'];
+        }
+        
         //go to autologin of subdomain as per given subdomain
-        $path = $this::giveMSSubDomainUrl($userDetails);
-        $url = $path . 'r=user-management/auth2/m-s-authlogin&data=' . $data;
-
+        $path = $this::giveMSSubDomainUrl($userinfo);
+        $url = $path . 'r=user-management/auth2/m-s-authlogin&token=' . $MStoken;
+       
         $curl = curl_init();
         curl_setopt($curl, CURLOPT_URL, $url);
         curl_setopt($curl, CURLOPT_NOPROXY, 'localhost');
@@ -204,16 +221,8 @@ class SiteController extends Controller {
             return 'Error';
         } else {
             $token = $result->token;
-            $this->redirect($path . 'r=user-management/auth2/m-s-autologin&token=' . $token);
+            $this->redirect($path . 'r=user-management/auth/login&token=' . $token);
         }
-    }
-
-    public function giveSubDomainUrl($data) {
-        $data = json_decode($data);
-
-        $path = 'http://localhost/synvm/basic/web/index.php?';
-
-        return $path;
     }
 
     public function giveMSSubDomainUrl($data) {
@@ -225,8 +234,49 @@ class SiteController extends Controller {
         } else {
             $path = 'http://localhost/synvm/basic/web/index.php?';
         }
-
+        
         return $path;
     }
+    
+    protected static function FetchDetailFromMS($token) {
+        $token = "Bearer" . " " . json_decode($token);
+        $url = 'https://graph.microsoft.com/v1.0/me';
 
+        $curl = curl_init();
+        curl_setopt($curl, CURLOPT_URL, $url);
+        curl_setopt($curl, CURLOPT_NOPROXY, 'localhost');
+
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($curl, CURLOPT_ENCODING, "");
+        curl_setopt($curl, CURLOPT_MAXREDIRS, 10);
+        curl_setopt($curl, CURLOPT_TIMEOUT, 300);
+        curl_setopt($curl, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
+
+        curl_setopt($curl, CURLOPT_POST, 0);
+        curl_setopt($curl, CURLOPT_HTTPHEADER, array(
+            "Authorization: " . $token
+        ));
+
+        $result = curl_exec($curl);
+        $ch_error = curl_error($curl);
+        curl_close($curl);
+
+        $final_result = [];
+        if ($ch_error) {
+            $final_result['status'] = 0;
+            $final_result['result'] = $ch_error;
+        }
+
+        $result = json_decode($result);
+        if (isset($result->error)) {
+            $final_result['status'] = 0;
+            $final_result['result'] = $result->error->code;
+        } else {
+            $final_result['status'] = 1;
+            $final_result['result'] = $result;
+        }
+
+        return $final_result;
+    }
+    
 }

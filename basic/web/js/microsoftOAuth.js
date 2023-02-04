@@ -1,10 +1,10 @@
 var dynamicUrl = `${window.location.origin}/${
   window.location.pathname.split("/")[1]
-}/${window.location.pathname.split("/")[2]}/basic/web/authLogin.php`;
+}/${window.location.pathname.split("/")[2]}/web/authLogin.php`;
 
 var localhostUrl = `${window.location.origin}/${
   window.location.pathname.split("/")[1]
-}/basic/web/authLogin.php`;
+}/web/authLogin.php`;
 
 var origin = window.location.origin;
 
@@ -39,24 +39,24 @@ let accessToken;
 
 // Helper function to call MS Graph API endpoint
 // using authorization bearer token scheme
-function callMSGraph(endpoint, token, callback) {
-  const headers = new Headers();
-  const bearer = `Bearer ${token}`;
-
-  headers.append("Authorization", bearer);
-
-  const options = {
-    method: "GET",
-    headers: headers,
-  };
-
-  console.log("request made to Graph API at: " + new Date().toString());
-
-  fetch(endpoint, options)
-    .then((response) => response.json())
-    .then((response) => callback(response, endpoint))
-    .catch((error) => console.log(error));
-}
+//function callMSGraph(endpoint, token, callback) {
+//  const headers = new Headers();
+//  const bearer = `Bearer ${token}`;
+//
+//  headers.append("Authorization", bearer);
+//
+//  const options = {
+//    method: "GET",
+//    headers: headers,
+//  };
+//
+//  console.log("request made to Graph API at: " + new Date().toString());
+//
+//  fetch(endpoint, options)
+//    .then((response) => response.json())
+//    .then((response) => callback(response, endpoint))
+//    .catch((error) => console.log(error));
+//}
 
 async function signIn() {
   myMSALObj
@@ -68,11 +68,7 @@ async function signIn() {
       if (myMSALObj.getAccount()) {
         let token = await getTokenPopup(loginRequest);
         console.log("token", token);
-        callMSGraph(
-          "https://graph.microsoft.com/v1.0/me",
-          token.accessToken,
-          updateUI
-        );
+         updateUI(token.accessToken, "https://graph.microsoft.com/v1.0/me")
       }
     })
     .catch((error) => {
@@ -103,13 +99,12 @@ function getTokenPopup(request) {
 }
 
 async function updateUI(data, endpoint) {
-  console.log("data", data);
-  console.log("Graph API responded at: " + new Date().toString());
-  const userDetails = await JSON.stringify(data);
+ 
+  const MStoken = await JSON.stringify(data);
   if (endpoint === "https://graph.microsoft.com/v1.0/me") {
     $.ajax({
       url: `<?php echo yii\helpers\Url::toRoute('/site/sub-domain-m-s-login'); ?>`,
-      data: { userDetails },
+      data: { MStoken },
       contentType: "application/json; charset=utf-8",
       dataType: "json",
       success: function (result) {

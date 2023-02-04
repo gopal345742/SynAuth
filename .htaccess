@@ -1,0 +1,28 @@
+Options +FollowSymLinks
+
+<IfModule mod_rewrite.c>
+RewriteEngine On
+RewriteRule ^rmsauth/basic/web/(.*)$ http://%{HTTP_HOST}/rmsauth/basic/web/index.php?r=vmap/render-file&path=/web/$1 [R=302,L]
+
+ RewriteCond %{REQUEST_METHOD} ^(TRACE|TRACK|PUT|OPTIONS|DELETE|HEAD)
+ RewriteRule .*$ - [F,L]
+
+#Disable HTTP/1.0
+RewriteCond %{THE_REQUEST} !HTTP/1.1$
+RewriteRule .* - [F]
+</IfModule>
+
+<IfModule mod_headers.c>
+	Header set X-Content-Type-Options nosniff
+	Header set X-Frame-Options DENY
+	Header set X-XSS-Protection 1;mode=block
+</IfModule>
+
+<IfModule mod_ssl.c>
+ RewriteCond %{HTTPS} off
+ RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI}
+
+<IfModule mod_headers.c>
+Header always set Strict-Transport-Security "max-age=100000; includeSubdomains;"
+</IfModule>
+</IfModule>
