@@ -67,18 +67,34 @@ class SiteController extends Controller {
      *
      * @return Response|string
      */
-    public function actionLogin() {
-        if (!Yii::$app->user->isGuest) {
-            return $this->goHome();
+    public function actionLogin($error = Null) {
+        if ($error != Null) {
+            Yii::$app->session->setFlash('error', $error);
         }
 
         $model = new LoginForm();
         if ($model->load(Yii::$app->request->post())) {
-
             $this->actionSubDomainLogin($model->username, $model->password);
         }
 
         return $this->render('login', [
+                    'model' => $model,
+        ]);
+    }
+
+    /**
+     * Login2 action.
+     *
+     * @return Response|string
+     */
+    public function actionLogin2() {  //for teams app
+        $model = new LoginForm();
+        if ($model->load(Yii::$app->request->post())) {
+            return "Return to Kunal";
+            //$this->actionSubDomainLogin($model->username, $model->password, 1);
+        }
+
+        return $this->render('login2', [
                     'model' => $model,
         ]);
     }
@@ -120,15 +136,23 @@ class SiteController extends Controller {
         return $this->render('about');
     }
 
-    public function actionSubDomainLogin($username, $pass) {
+    public function actionSubDomainLogin($username, $pass, $from = 0) {
         $data = [
             'username' => $username,
             'pass' => $pass,
             'exp' => (time() + 60)
         ];
-        
+
         //go to autologin of subdomain as per given subdomain
-        $path = $this::giveSubDomainUrl($data);
+        $res = $this::giveSubDomainUrl($data);
+
+        if ($res['status'] == 1) {
+            $path = $res['result'];
+        } else {
+            $error = 'Domain is not listed for login.';
+            return $this->redirect(['/site/login', 'error' => $error]);
+        }
+
         $url = $path . 'r=user-management/auth2/authlogin';
 
         $jwt_headers = [
@@ -136,7 +160,7 @@ class SiteController extends Controller {
             "typ" => "JWT"
         ];
         $jwt_token = JWTToken::generate_jwt($jwt_headers, $data);
-        
+
         $curl = curl_init();
         curl_setopt($curl, CURLOPT_URL, $url);
         curl_setopt($curl, CURLOPT_NOPROXY, 'localhost');
@@ -150,7 +174,7 @@ class SiteController extends Controller {
         curl_setopt($curl, CURLOPT_POST, 0);
         curl_setopt($curl, CURLOPT_HTTPHEADER, array(
             "content-type: application/json; charset=utf-8",
-            "Authorization: ".$jwt_token
+            "Authorization: " . $jwt_token
         ));
 
         $result = curl_exec($curl);
@@ -159,13 +183,14 @@ class SiteController extends Controller {
         curl_close($curl);
 
         if ($ch_error) {
-            return $ch_error;
+            return $this->redirect(['/site/login', 'error' => $ch_error]);
         }
 
         $result = json_decode($result);
+
         if ($result->status == 0) {
-            
-            return 'Error';
+            $error = 'There is some problem in domain.';
+            return $this->redirect(['/site/login', 'error' => $error]);
         } else {
             $token = $result->token;
             $this->redirect($path . 'r=user-management/auth/login&token=' . $token);
@@ -173,24 +198,46 @@ class SiteController extends Controller {
     }
 
     public function giveSubDomainUrl($data) {
-        $path1 = 'http://localhost/synvm/basic/web/index.php?';
-        $path = 'http://172.105.33.91/scm_upgrade/synvm/basic/web/index.php?';
+        $email = $data['username'];
+        $domain = explode('@', $email);
 
-        return $path1;
+        $ret = [
+            'status' => 0,
+            'result' => ''
+        ];
+
+        $file_path = \Yii::getAlias('@app') . DIRECTORY_SEPARATOR . 'config' . DIRECTORY_SEPARATOR . 'sub_domain_mapping.json';
+        $json_data = file_get_contents($file_path);
+        $json_data = json_decode($json_data, true);
+
+        if (isset($json_data[$domain[1]])) {
+            $ret['status'] = 1;
+            $ret['result'] = $json_data[$domain[1]];
+        }
+
+        return $ret;
     }
-    
+
     public function actionSubDomainMSLogin($MStoken) {
         $res = $this::FetchDetailFromMS($MStoken);
         if ($res['status'] == 0) {
-            $this->redirect(['/site/login']);
+            return $this->redirect(['/site/login', 'error' => $res['result']]);
         } else {
             $userinfo = $res['result'];
         }
-        
+
         //go to autologin of subdomain as per given subdomain
-        $path = $this::giveMSSubDomainUrl($userinfo);
+        $res = $this::giveMSSubDomainUrl($userinfo);
+
+        if ($res['status'] == 1) {
+            $path = $res['result'];
+        } else {
+            $error = 'Domain is not listed for login.';
+            return redirect(['/site/login', 'error' => $error]);
+        }
+
         $url = $path . 'r=user-management/auth2/m-s-authlogin&token=' . $MStoken;
-       
+
         $curl = curl_init();
         curl_setopt($curl, CURLOPT_URL, $url);
         curl_setopt($curl, CURLOPT_NOPROXY, 'localhost');
@@ -212,13 +259,14 @@ class SiteController extends Controller {
         curl_close($curl);
 
         if ($ch_error) {
-            return $ch_error;
+            return $this->redirect(['/site/login', 'error' => $ch_error]);
         }
 
         $result = json_decode($result);
 
         if ($result->status == 0) {
-            return 'Error';
+            $error = 'There is some problem in domain';
+            return $this->redirect(['/site/login', 'error' => $error]);
         } else {
             $token = $result->token;
             $this->redirect($path . 'r=user-management/auth/login&token=' . $token);
@@ -228,16 +276,24 @@ class SiteController extends Controller {
     public function giveMSSubDomainUrl($data) {
         $mail = $data->mail;
         $domain = explode('@', $mail);
-        
-        if ($domain[1] == 'synradar.com') {
-            $path = 'http://172.105.33.91/scm_upgrade/synvm/basic/web/index.php?';
-        } else {
-            $path = 'http://localhost/synvm/basic/web/index.php?';
+
+        $ret = [
+            'status' => 0,
+            'result' => ''
+        ];
+
+        $file_path = \Yii::getAlias('@app') . DIRECTORY_SEPARATOR . 'config' . DIRECTORY_SEPARATOR . 'sub_domain_mapping.json';
+        $json_data = file_get_contents($file_path);
+        $json_data = json_decode($json_data, true);
+
+        if (isset($json_data[$domain[1]])) {
+            $ret['status'] = 1;
+            $ret['result'] = $json_data[$domain[1]];
         }
-        
-        return $path;
+
+        return $ret;
     }
-    
+
     protected static function FetchDetailFromMS($token) {
         $token = "Bearer" . " " . json_decode($token);
         $url = 'https://graph.microsoft.com/v1.0/me';
@@ -263,8 +319,7 @@ class SiteController extends Controller {
 
         $final_result = [];
         if ($ch_error) {
-            $final_result['status'] = 0;
-            $final_result['result'] = $ch_error;
+            $this->redirect(['/site/login', 'error' => $ch_error]);
         }
 
         $result = json_decode($result);
@@ -278,5 +333,5 @@ class SiteController extends Controller {
 
         return $final_result;
     }
-    
+
 }

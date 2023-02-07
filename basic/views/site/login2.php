@@ -7,7 +7,7 @@
 use yii\bootstrap4\ActiveForm;
 use yii\bootstrap4\Html;
 
-$this->title = 'Login';
+$this->title = 'Login with Teams';
 $this->params['breadcrumbs'][] = $this->title;
 ?>
 
@@ -24,7 +24,7 @@ $this->params['breadcrumbs'][] = $this->title;
 <div class="site-login">
     <h1><?= Html::encode($this->title) ?></h1>
 
-    <p>Please fill out the following fields to login:</p>
+    <p>Please fill out the following fields to login with Teams:</p>
 
     <?php $form = ActiveForm::begin([
         'id' => 'login-form',
@@ -36,7 +36,7 @@ $this->params['breadcrumbs'][] = $this->title;
             'errorOptions' => ['class' => 'col-lg-7 invalid-feedback'],
         ],
     ]); ?>
-    
+
     <?= $form->field($model, 'username')->textInput(['autofocus' => true]) ?>
 
     <?= $form->field($model, 'password')->passwordInput() ?>
@@ -53,7 +53,6 @@ $this->params['breadcrumbs'][] = $this->title;
 
     <?php ActiveForm::end(); ?>
 </div>
-
 
 
 <script>
@@ -92,30 +91,6 @@ var tokenRequest = {
 const myMSALObj = new Msal.UserAgentApplication(msalConfig);
 
 let accessToken;
-
-// Register Callbacks for Redirect flow
-// myMSALObj.handleRedirectCallback(authPopupCallBack);
-
-// Helper function to call MS Graph API endpoint
-// using authorization bearer token scheme
-//function callMSGraph(endpoint, token, callback) {
-//  const headers = new Headers();
-//  const bearer = `Bearer ${token}`;
-//
-//  headers.append("Authorization", bearer);
-//
-//  const options = {
-//    method: "GET",
-//    headers: headers,
-//  };
-//
-//  console.log("request made to Graph API at: " + new Date().toString());
-//
-//  fetch(endpoint, options)
-//    .then((response) => response.json())
-//    .then((response) => callback(response, endpoint))
-//    .catch((error) => console.log(error));
-//}
 
 async function signIn() {
   myMSALObj
