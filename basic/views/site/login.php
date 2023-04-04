@@ -127,7 +127,7 @@ async function signIn() {
       if (myMSALObj.getAccount()) {
         let token = await getTokenPopup(loginRequest);
         console.log("token", token);
-         updateUI(token.accessToken, "https://graph.microsoft.com/v1.0/me")
+        updateUI(token, "https://graph.microsoft.com/v1.0/me");
       }
     })
     .catch((error) => {
@@ -163,11 +163,13 @@ function getTokenPopup(request) {
 
 async function updateUI(data, endpoint) {
  
-  const MStoken = await JSON.stringify(data);
+  const MStoken = await JSON.stringify(data.accessToken);
+  const userName = await data.account.userName;
+  
   if (endpoint === "https://graph.microsoft.com/v1.0/me") {
     $.ajax({
       url: `<?php echo yii\helpers\Url::toRoute('/site/sub-domain-m-s-login'); ?>`,
-      data: { MStoken },
+      data: { MStoken, userName },
       contentType: "application/json; charset=utf-8",
       dataType: "json",
       success: function (result) {
