@@ -83,23 +83,6 @@ class SiteController extends Controller {
     }
 
     /**
-     * Login2 action.
-     *
-     * @return Response|string
-     */
-    public function actionLogin2() {  //for teams app
-        $model = new LoginForm();
-        if ($model->load(Yii::$app->request->post())) {
-            return "Return to Kunal";
-            //$this->actionSubDomainLogin($model->username, $model->password, 1);
-        }
-
-        return $this->render('login2', [
-                    'model' => $model,
-        ]);
-    }
-
-    /**
      * Logout action.
      *
      * @return Response
@@ -136,7 +119,7 @@ class SiteController extends Controller {
         return $this->render('about');
     }
 
-    public function actionSubDomainLogin($username, $pass, $from = 0) {
+    public function actionSubDomainLogin($username, $pass) {
         $data = [
             'username' => $username,
             'pass' => $pass,
@@ -218,16 +201,16 @@ class SiteController extends Controller {
         return $ret;
     }
 
-    public function actionSubDomainMSLogin($MStoken) {
-        $res = $this::FetchDetailFromMS($MStoken);
-        if ($res['status'] == 0) {
-            return $this->redirect(['/site/login', 'error' => $res['result']]);
-        } else {
-            $userinfo = $res['result'];
-        }
+    public function actionSubDomainMSLogin($MStoken, $userName) {
+//        $res = $this::FetchDetailFromMS($MStoken);
+//        if ($res['status'] == 0) {
+//            return $this->redirect(['/site/login', 'error' => $res['result']]);
+//        } else {
+//            $userinfo = $res['result'];
+//        }
 
         //go to autologin of subdomain as per given subdomain
-        $res = $this::giveMSSubDomainUrl($userinfo);
+        $res = $this::giveMSSubDomainUrl($userName);
 
         if ($res['status'] == 1) {
             $path = $res['result'];
@@ -273,9 +256,8 @@ class SiteController extends Controller {
         }
     }
 
-    public function giveMSSubDomainUrl($data) {
-        $mail = $data->mail;
-        $domain = explode('@', $mail);
+    public function giveMSSubDomainUrl($email) {
+        $domain = explode('@', $email);
 
         $ret = [
             'status' => 0,
