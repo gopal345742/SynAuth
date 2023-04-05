@@ -146,7 +146,7 @@ class SiteController extends Controller {
 
         $curl = curl_init();
         curl_setopt($curl, CURLOPT_URL, $url);
-        curl_setopt($curl, CURLOPT_NOPROXY, 'localhost');
+        //curl_setopt($curl, CURLOPT_NOPROXY, 'localhost');
 
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
         curl_setopt($curl, CURLOPT_ENCODING, "");
@@ -163,6 +163,7 @@ class SiteController extends Controller {
         $result = curl_exec($curl);
         $ch_error = curl_error($curl);
 
+        //print_r(curl_getinfo($curl));die;
         curl_close($curl);
 
         if ($ch_error) {
@@ -223,7 +224,7 @@ class SiteController extends Controller {
 
         $curl = curl_init();
         curl_setopt($curl, CURLOPT_URL, $url);
-        curl_setopt($curl, CURLOPT_NOPROXY, 'localhost');
+        //curl_setopt($curl, CURLOPT_NOPROXY, 'localhost');
 
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
         curl_setopt($curl, CURLOPT_ENCODING, "");
@@ -238,7 +239,8 @@ class SiteController extends Controller {
 
         $result = curl_exec($curl);
         $ch_error = curl_error($curl);
-
+        
+        //print_r(curl_getinfo($curl));die;
         curl_close($curl);
 
         if ($ch_error) {
@@ -282,7 +284,7 @@ class SiteController extends Controller {
 
         $curl = curl_init();
         curl_setopt($curl, CURLOPT_URL, $url);
-        curl_setopt($curl, CURLOPT_NOPROXY, 'localhost');
+        //curl_setopt($curl, CURLOPT_NOPROXY, 'localhost');
 
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
         curl_setopt($curl, CURLOPT_ENCODING, "");
@@ -297,6 +299,8 @@ class SiteController extends Controller {
 
         $result = curl_exec($curl);
         $ch_error = curl_error($curl);
+        
+        //print_r(curl_getinfo($curl));die;
         curl_close($curl);
 
         $final_result = [];
