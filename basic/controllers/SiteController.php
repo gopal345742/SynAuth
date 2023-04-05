@@ -82,6 +82,22 @@ class SiteController extends Controller {
         ]);
     }
 
+    //clientID for MSTeams
+    public function actionLogin2($error = Null) {
+        if ($error != Null) {
+            Yii::$app->session->setFlash('error', $error);
+        }
+
+        $model = new LoginForm();
+        if ($model->load(Yii::$app->request->post())) {
+            $this->actionSubDomainLogin($model->username, $model->password, 'msTeams');
+        }
+
+        return $this->render('login', [
+                    'model' => $model,
+        ]);
+    }
+    
     /**
      * Logout action.
      *
@@ -119,7 +135,7 @@ class SiteController extends Controller {
         return $this->render('about');
     }
 
-    public function actionSubDomainLogin($username, $pass) {
+    public function actionSubDomainLogin($username, $pass, $clientID = Null) {
         $data = [
             'username' => $username,
             'pass' => $pass,
@@ -175,6 +191,9 @@ class SiteController extends Controller {
         if ($result->status == 0) {
             $error = 'There is some problem in domain.';
             return $this->redirect(['/site/login', 'error' => $error]);
+        } else if ($clientID == 'msTeams') {
+            $token = $result->token;
+            $this->redirect('https://localhost:53000/end.html#code=' . $token);
         } else {
             $token = $result->token;
             $this->redirect($path . 'r=user-management/auth/login&token=' . $token);
@@ -202,7 +221,7 @@ class SiteController extends Controller {
         return $ret;
     }
 
-    public function actionSubDomainMSLogin($MStoken, $userName) {
+    public function actionSubDomainMSLogin($MStoken, $userName, $clientID = Null) {
 //        $res = $this::FetchDetailFromMS($MStoken);
 //        if ($res['status'] == 0) {
 //            return $this->redirect(['/site/login', 'error' => $res['result']]);
@@ -252,6 +271,9 @@ class SiteController extends Controller {
         if ($result->status == 0) {
             $error = 'There is some problem in domain';
             return $this->redirect(['/site/login', 'error' => $error]);
+        } else if ($clientID == 'msTeams') {
+            $token = $result->token;
+            $this->redirect('https://localhost:53000/end.html#code=' . $token);
         } else {
             $token = $result->token;
             $this->redirect($path . 'r=user-management/auth/login&token=' . $token);
