@@ -67,37 +67,55 @@ class SiteController extends Controller {
      *
      * @return Response|string
      */
-    public function actionLogin($error = Null) {
-        if ($error != Null) {
-            Yii::$app->session->setFlash('error', $error);
+    public function actionLogin() {
+        try {
+            $model = new LoginForm();
+            if ($model->load(Yii::$app->request->post())) {
+                $this->actionSubDomainLogin($model->username, $model->password);
+            }
+
+            return $this->render('login', [
+                        'model' => $model,
+            ]);
+        } catch (\yii\db\Exception $e) {
+            Yii::error($e, 'db_error');
+            Yii::$app->session->setFlash('error', $e->getMessage());
+        } catch (\yii\db\IntegrityException $e) {
+            Yii::error($e, 'db_error');
+            Yii::$app->session->setFlash('error', $e->getMessage());
+        } catch (\Exception $e) {
+            Yii::error($e, 'app_error');
+            Yii::$app->session->setFlash('error', $e->getMessage());
         }
 
-        $model = new LoginForm();
-        if ($model->load(Yii::$app->request->post())) {
-            $this->actionSubDomainLogin($model->username, $model->password);
-        }
-
-        return $this->render('login', [
-                    'model' => $model,
-        ]);
+        return $this->redirect(Yii::$app->request->referrer, 302);
     }
 
     //clientID for MSTeams
-    public function actionLogin2($error = Null) {
-        if ($error != Null) {
-            Yii::$app->session->setFlash('error', $error);
+    public function actionLogin2() {
+        try {
+            $model = new LoginForm();
+            if ($model->load(Yii::$app->request->post())) {
+                $this->actionSubDomainLogin($model->username, $model->password, 'msTeams');
+            }
+
+            return $this->render('login', [
+                        'model' => $model,
+            ]);
+        } catch (\yii\db\Exception $e) {
+            Yii::error($e, 'db_error');
+            Yii::$app->session->setFlash('error', $e->getMessage());
+        } catch (\yii\db\IntegrityException $e) {
+            Yii::error($e, 'db_error');
+            Yii::$app->session->setFlash('error', $e->getMessage());
+        } catch (\Exception $e) {
+            Yii::error($e, 'app_error');
+            Yii::$app->session->setFlash('error', $e->getMessage());
         }
 
-        $model = new LoginForm();
-        if ($model->load(Yii::$app->request->post())) {
-            $this->actionSubDomainLogin($model->username, $model->password, 'msTeams');
-        }
-
-        return $this->render('login', [
-                    'model' => $model,
-        ]);
+        return $this->redirect(Yii::$app->request->referrer, 302);
     }
-    
+
     /**
      * Logout action.
      *
@@ -148,8 +166,7 @@ class SiteController extends Controller {
         if ($res['status'] == 1) {
             $path = $res['result'];
         } else {
-            $error = 'Domain is not listed for login.';
-            return $this->redirect(['/site/login', 'error' => $error]);
+            throw new \Exception('Domain is not listed for login.');
         }
 
         $url = $path . 'r=user-management/auth2/authlogin';
@@ -183,14 +200,13 @@ class SiteController extends Controller {
         curl_close($curl);
 
         if ($ch_error) {
-            return $this->redirect(['/site/login', 'error' => $ch_error]);
+            throw new \Exception($ch_error);
         }
 
         $result = json_decode($result);
 
         if ($result->status == 0) {
-            $error = 'There is some problem in domain.';
-            return $this->redirect(['/site/login', 'error' => $error]);
+            throw new \Exception('There is some problem in domain.');
         } else if ($clientID == 'msTeams') {
             $token = $result->token;
             $this->redirect('https://localhost:53000/end.html#code=' . $token);
@@ -222,62 +238,72 @@ class SiteController extends Controller {
     }
 
     public function actionSubDomainMSLogin($MStoken, $userName, $clientID = Null) {
+        try {
 //        $res = $this::FetchDetailFromMS($MStoken);
 //        if ($res['status'] == 0) {
 //            return $this->redirect(['/site/login', 'error' => $res['result']]);
 //        } else {
 //            $userinfo = $res['result'];
 //        }
+            //go to autologin of subdomain as per given subdomain
+            $res = $this::giveMSSubDomainUrl($userName);
 
-        //go to autologin of subdomain as per given subdomain
-        $res = $this::giveMSSubDomainUrl($userName);
+            if ($res['status'] == 1) {
+                $path = $res['result'];
+            } else {
+                throw new \Exception('Domain is not listed for login.');
+            }
 
-        if ($res['status'] == 1) {
-            $path = $res['result'];
-        } else {
-            $error = 'Domain is not listed for login.';
-            return redirect(['/site/login', 'error' => $error]);
+            $url = $path . 'r=user-management/auth2/m-s-authlogin&token=' . $MStoken;
+
+            $curl = curl_init();
+            curl_setopt($curl, CURLOPT_URL, $url);
+            //curl_setopt($curl, CURLOPT_NOPROXY, 'localhost');
+
+            curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
+            curl_setopt($curl, CURLOPT_ENCODING, "");
+            curl_setopt($curl, CURLOPT_MAXREDIRS, 10);
+            curl_setopt($curl, CURLOPT_TIMEOUT, 300);
+            curl_setopt($curl, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
+
+            curl_setopt($curl, CURLOPT_POST, 0);
+            curl_setopt($curl, CURLOPT_HTTPHEADER, array(
+                "content-type: application/json; charset=utf-8"
+            ));
+
+            $result = curl_exec($curl);
+            $ch_error = curl_error($curl);
+
+            //print_r(curl_getinfo($curl));die;
+            curl_close($curl);
+
+            if ($ch_error) {
+                throw new \Exception($ch_error);
+            }
+
+            $result = json_decode($result);
+
+            if ($result->status == 0) {
+                throw new \Exception('There is some problem in domain.');
+            } else if ($clientID == 'msTeams') {
+                $token = $result->token;
+                $this->redirect('https://localhost:53000/end.html#code=' . $token);
+            } else {
+                $token = $result->token;
+                $this->redirect($path . 'r=user-management/auth/login&token=' . $token);
+            }
+        } catch (\yii\db\Exception $e) {
+            Yii::error($e, 'db_error');
+            Yii::$app->session->setFlash('error', $e->getMessage());
+        } catch (\yii\db\IntegrityException $e) {
+            Yii::error($e, 'db_error');
+            Yii::$app->session->setFlash('error', $e->getMessage());
+        } catch (\Exception $e) {
+            Yii::error($e, 'app_error');
+            Yii::$app->session->setFlash('error', $e->getMessage());
         }
 
-        $url = $path . 'r=user-management/auth2/m-s-authlogin&token=' . $MStoken;
-
-        $curl = curl_init();
-        curl_setopt($curl, CURLOPT_URL, $url);
-        //curl_setopt($curl, CURLOPT_NOPROXY, 'localhost');
-
-        curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($curl, CURLOPT_ENCODING, "");
-        curl_setopt($curl, CURLOPT_MAXREDIRS, 10);
-        curl_setopt($curl, CURLOPT_TIMEOUT, 300);
-        curl_setopt($curl, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
-
-        curl_setopt($curl, CURLOPT_POST, 0);
-        curl_setopt($curl, CURLOPT_HTTPHEADER, array(
-            "content-type: application/json; charset=utf-8"
-        ));
-
-        $result = curl_exec($curl);
-        $ch_error = curl_error($curl);
-        
-        //print_r(curl_getinfo($curl));die;
-        curl_close($curl);
-
-        if ($ch_error) {
-            return $this->redirect(['/site/login', 'error' => $ch_error]);
-        }
-
-        $result = json_decode($result);
-
-        if ($result->status == 0) {
-            $error = 'There is some problem in domain';
-            return $this->redirect(['/site/login', 'error' => $error]);
-        } else if ($clientID == 'msTeams') {
-            $token = $result->token;
-            $this->redirect('https://localhost:53000/end.html#code=' . $token);
-        } else {
-            $token = $result->token;
-            $this->redirect($path . 'r=user-management/auth/login&token=' . $token);
-        }
+        return $this->redirect(['/site/login']);
     }
 
     public function giveMSSubDomainUrl($email) {
@@ -321,13 +347,13 @@ class SiteController extends Controller {
 
         $result = curl_exec($curl);
         $ch_error = curl_error($curl);
-        
+
         //print_r(curl_getinfo($curl));die;
         curl_close($curl);
 
         $final_result = [];
         if ($ch_error) {
-            $this->redirect(['/site/login', 'error' => $ch_error]);
+            throw new \Exception($ch_error);
         }
 
         $result = json_decode($result);
