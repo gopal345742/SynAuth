@@ -80,15 +80,16 @@ class SiteController extends Controller {
         } catch (\yii\db\Exception $e) {
             Yii::error($e, 'db_error');
             Yii::$app->session->setFlash('error', $e->getMessage());
+            return $this->redirect(Yii::$app->request->referrer, 302);
         } catch (\yii\db\IntegrityException $e) {
             Yii::error($e, 'db_error');
             Yii::$app->session->setFlash('error', $e->getMessage());
+            return $this->redirect(Yii::$app->request->referrer, 302);
         } catch (\Exception $e) {
             Yii::error($e, 'app_error');
             Yii::$app->session->setFlash('error', $e->getMessage());
+            return $this->redirect(Yii::$app->request->referrer, 302);
         }
-
-        return $this->redirect(Yii::$app->request->referrer, 302);
     }
 
     //clientID for MSTeams
@@ -295,15 +296,16 @@ class SiteController extends Controller {
         } catch (\yii\db\Exception $e) {
             Yii::error($e, 'db_error');
             Yii::$app->session->setFlash('error', $e->getMessage());
+            return $this->redirect(['/site/login']);
         } catch (\yii\db\IntegrityException $e) {
             Yii::error($e, 'db_error');
             Yii::$app->session->setFlash('error', $e->getMessage());
+            return $this->redirect(['/site/login']);
         } catch (\Exception $e) {
             Yii::error($e, 'app_error');
             Yii::$app->session->setFlash('error', $e->getMessage());
+            return $this->redirect(['/site/login']);
         }
-
-        return $this->redirect(['/site/login']);
     }
 
     public function giveMSSubDomainUrl($email) {
